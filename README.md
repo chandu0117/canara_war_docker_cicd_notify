@@ -53,4 +53,5 @@ GMAIL_APP_PASS="xxxx" \
   💡 Project crafted with passion by <b>sak_shetty</b> 🚀
 </p>
 ---
+
 **Script Done By sak_shetty**
