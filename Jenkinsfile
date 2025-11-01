@@ -144,7 +144,7 @@ pipeline {
             when {
                 allOf {
                     expression { params.ENVIRONMENT == 'prod' }
-                    expression { params.ACTION == 'clean' }
+                    expression { params.ACTION == 'remove' }
                 }
             }
             steps {
