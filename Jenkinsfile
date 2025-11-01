@@ -171,21 +171,29 @@ pipeline {
     }
     post {
         success {
-            withCredentials([usernamePassword(credentialsId: 'GMAIL_GMAILAUTH', usernameVariable: 'GMAIL_USER', passwordVariable: 'GMAIL_APP_PASS')]) {
-            sh """
-                chmod +x ./jenkins_notify.sh || true
-                GMAIL_USER=\$GMAIL_USER GMAIL_APP_PASS=\$GMAIL_APP_PASS \
-                ./jenkins_notify.sh "SUCCESS" "${JOB_NAME}" "${BUILD_ID}" "${RECEIVER_EMAIL}"
-            """
+            script {
+                withCredentials([usernamePassword(credentialsId: 'GMAIL_GMAILAUTH', usernameVariable: 'GMAIL_USER', passwordVariable: 'GMAIL_APP_PASS')]) {
+                    sh """
+                    chmod +x jenkins_notify.sh || true
+
+                    GMAIL_USER=\$GMAIL_USER \
+                    GMAIL_APP_PASS=\$GMAIL_APP_PASS \
+                    ./jenkins_notify.sh "SUCCESS" "$JOB_NAME" "$BUILD_ID" "$RECEIVER_EMAIL"
+                    """
+                }
             }
         }
         failure {
-            withCredentials([usernamePassword(credentialsId: 'GMAIL_GMAILAUTH', usernameVariable: 'GMAIL_USER', passwordVariable: 'GMAIL_APP_PASS')]) {
-            sh """
-                chmod +x ./jenkins_notify.sh || true
-                GMAIL_USER=\$GMAIL_USER GMAIL_APP_PASS=\$GMAIL_APP_PASS \
-                ./jenkins_notify.sh "FAILED" "${JOB_NAME}" "${BUILD_ID}" "${RECEIVER_EMAIL}"
-            """
+            script {
+                withCredentials([usernamePassword(credentialsId: 'GMAIL_GMAILAUTH', usernameVariable: 'GMAIL_USER', passwordVariable: 'GMAIL_APP_PASS')]) {
+                    sh """
+                    chmod +x jenkins_notify.sh || true
+
+                    GMAIL_USER=\$GMAIL_USER \
+                    GMAIL_APP_PASS=\$GMAIL_APP_PASS \
+                    ./jenkins_notify.sh "FAILURE" "$JOB_NAME" "$BUILD_ID" "$RECEIVER_EMAIL"
+                    """
+                }
             }
         }
     }

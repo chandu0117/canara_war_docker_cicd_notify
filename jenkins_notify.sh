@@ -1,20 +1,12 @@
 #!/bin/bash
 # ---------------------------------------------------
-# ✅ Jenkins Gmail Notification Script
+# ✅ Jenkins Gmail Notification Script (msmtp version)
 # ✅ Designed & Developed by: sak_shetty
 # ---------------------------------------------------
 
-LOG_DIR="/opt/scripts/logs"
-LOG_FILE="$LOG_DIR/jenkins_notify_$(date +%F).log"
-
-# Ensure log directory exists
+LOG_DIR="./notify_logs"
 mkdir -p "$LOG_DIR"
-
-# Auto grant execute permission if missing
-if [ ! -x "$0" ]; then
-  echo "🔐 Fixing script execute permission..." | tee -a "$LOG_FILE"
-  chmod +x "$0"
-fi
+LOG_FILE="$LOG_DIR/jenkins_notify_$(date +%F).log"
 
 STATUS="$1"
 JOB_NAME="$2"
@@ -25,29 +17,36 @@ GMAIL_USER="${GMAIL_USER}"
 GMAIL_APP_PASS="${GMAIL_APP_PASS}"
 
 if [ -z "$STATUS" ] || [ -z "$JOB_NAME" ] || [ -z "$BUILD_ID" ] || [ -z "$TO_EMAIL" ]; then
-  echo "❌ Missing arguments" | tee -a "$LOG_FILE"
-  echo "Usage: ./jenkins_notify.sh <STATUS> <JOB_NAME> <BUILD_ID> <RECEIVER_EMAIL>" | tee -a "$LOG_FILE"
+  echo "❌ Missing arguments. Usage:" | tee -a "$LOG_FILE"
+  echo "./jenkins_notify.sh <STATUS> <JOB_NAME> <BUILD_ID> <TO_EMAIL>" | tee -a "$LOG_FILE"
   exit 1
 fi
 
-# Install required packages if missing
-if ! command -v ssmtp >/dev/null 2>&1; then
-  echo "📦 Installing ssmtp & mailutils..." | tee -a "$LOG_FILE"
+# ✅ Install msmtp if missing
+if ! command -v msmtp >/dev/null 2>&1; then
+  echo "📦 Installing msmtp & mailutils..." | tee -a "$LOG_FILE"
   sudo apt-get update -y >> "$LOG_FILE" 2>&1
-  sudo apt-get install ssmtp mailutils -y >> "$LOG_FILE" 2>&1
+  sudo apt-get install -y msmtp mailutils >> "$LOG_FILE" 2>&1
 fi
 
-echo "⚙️ Configuring ssmtp..." | tee -a "$LOG_FILE"
-sudo bash -c "cat > /etc/ssmtp/ssmtp.conf <<EOF
-root=$GMAIL_USER
-mailhub=smtp.gmail.com:587
-AuthUser=$GMAIL_USER
-AuthPass=$GMAIL_APP_PASS
-UseSTARTTLS=YES
-UseTLS=YES
-hostname=localhost
-FromLineOverride=YES
-EOF"
+# ✅ Configure msmtp (temp file inside workspace)
+cat > ./msmtprc <<EOF
+defaults
+auth           on
+tls            on
+tls_starttls   on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+account        gmail
+host           smtp.gmail.com
+port           587
+from           $GMAIL_USER
+user           $GMAIL_USER
+password       $GMAIL_APP_PASS
+account default : gmail
+logfile        $LOG_FILE
+EOF
+
+chmod 600 ./msmtprc
 
 SUBJECT="Jenkins Build Notification - $JOB_NAME (#$BUILD_ID)"
 BODY="
@@ -64,8 +63,7 @@ Regards,
 Jenkins Notification Service
 "
 
-echo "📤 Sending email to $TO_EMAIL..." | tee -a "$LOG_FILE"
-echo "$BODY" | mail -s "$SUBJECT" "$TO_EMAIL" 2>&1 | tee -a "$LOG_FILE"
+echo "$BODY" | msmtp --debug --file=./msmtprc -a gmail "$TO_EMAIL"
 
 echo "✅ Email sent at $(date)" | tee -a "$LOG_FILE"
 exit 0
